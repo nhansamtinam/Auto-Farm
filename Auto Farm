@@ -41,6 +41,10 @@ local special = {
     BlackHolePath = true,
     Room = true,
     Shambles = true,
+    Grilled Lance = true,
+    Scorching Buzzcut = true,
+    Inferno Breath = true,
+    Arctic Breath = true,
 }
 
 local function castSkill(fruit, skill)
