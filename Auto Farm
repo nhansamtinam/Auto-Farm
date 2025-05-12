@@ -4,26 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local player, mouse = Players.LocalPlayer, Players.LocalPlayer:GetMouse()
 
--- Lấy tên trái đang trang bị
-local function getEquippedFruit()
-    local mainData = player:WaitForChild("MAIN_DATA", 10)
-    if not mainData then return nil end
-
-    local currentSlot = mainData:FindFirstChild("Slot")
-    if not currentSlot then return nil end
-
-    local slotValue = mainData.Slots:FindFirstChild(tostring(currentSlot.Value))
-    return slotValue and slotValue.Value or nil
-end
-
--- Tự động gán tên trái đang dùng
-local currentFruit = getEquippedFruit()
-if not currentFruit then
-    warn("Không thể lấy tên trái đang dùng.")
-    return
-end
-
--- Danh sách chiêu theo từng trái
+-- Chiêu theo từng trái
 local skills = {
     DoughV2 = {"GrilledLance", "ElasticLasso", "Oblivion", "PowerDough", "BlazingStorm", "ScorchingBuzzcut"},
     Ope = {"Room", "Takt", "Wreckage", "HurricaneShock", "GammaKnife", "Mes", "Shambles"},
@@ -36,7 +17,7 @@ local skills = {
     Okuchi = {"PrimalRage", "ArcticBreath", "DevastatingDrop", "HallowedCuts", "GlacialCoat", "DivineSerpent"},
 }
 
--- Chiêu cần thông số đặc biệt
+-- Chiêu đặc biệt cần MouseRay
 local special = {
     BlackHolePath = true,
     Room = true,
@@ -47,6 +28,42 @@ local special = {
     ArcticBreath = true,
 }
 
+-- Biến toàn cục để cập nhật trái hiện tại
+local currentFruit = nil
+
+local function updateCurrentFruit()
+    local mainData = player:FindFirstChild("MAIN_DATA")
+    if not mainData then return end
+
+    local currentSlot = mainData:FindFirstChild("Slot")
+    if not currentSlot then return end
+
+    local slotValue = mainData.Slots:FindFirstChild(tostring(currentSlot.Value))
+    currentFruit = slotValue and slotValue.Value or nil
+end
+
+-- Theo dõi thay đổi slot
+local function watchSlotChanges()
+    local mainData = player:WaitForChild("MAIN_DATA", 10)
+    if not mainData then
+        warn("Không tìm thấy MAIN_DATA.")
+        return
+    end
+
+    local slot = mainData:WaitForChild("Slot", 5)
+    if not slot then
+        warn("Không tìm thấy Slot.")
+        return
+    end
+
+    slot:GetPropertyChangedSignal("Value"):Connect(function()
+        updateCurrentFruit()
+    end)
+
+    updateCurrentFruit()
+end
+
+-- Gọi kỹ năng
 local function castSkill(fruit, skill)
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
@@ -71,10 +88,19 @@ local function castSkill(fruit, skill)
     end
 end
 
--- Bắt đầu auto
-while _G.auto do
-    for _, skill in ipairs(skills[currentFruit] or {}) do
-        castSkill(currentFruit, skill)
-        task.wait(0.15)
+-- Bắt đầu theo dõi và dùng chiêu
+task.spawn(watchSlotChanges)
+
+task.spawn(function()
+    while _G.auto do
+        if currentFruit and skills[currentFruit] then
+            for _, skill in ipairs(skills[currentFruit]) do
+                castSkill(currentFruit, skill)
+                task.wait(0.15)
+            end
+        else
+            warn("Chưa có trái hoặc trái không có trong danh sách.")
+            task.wait(1)
+        end
     end
-end
+end)
