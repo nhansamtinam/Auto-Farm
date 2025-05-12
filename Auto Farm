@@ -44,7 +44,7 @@ local special = {
     GrilledLance = true,
     ScorchingBuzzcut = true,
     InfernoBreath = true,
-    ArcticBreath = true
+    ArcticBreath = true,
 }
 
 local function castSkill(fruit, skill)
