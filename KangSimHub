@@ -1,0 +1,80 @@
+_G.auto = true
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player, mouse = Players.LocalPlayer, Players.LocalPlayer:GetMouse()
+
+-- Lấy tên trái đang trang bị
+local function getEquippedFruit()
+    local mainData = player:WaitForChild("MAIN_DATA", 10)
+    if not mainData then return nil end
+
+    local currentSlot = mainData:FindFirstChild("Slot")
+    if not currentSlot then return nil end
+
+    local slotValue = mainData.Slots:FindFirstChild(tostring(currentSlot.Value))
+    return slotValue and slotValue.Value or nil
+end
+
+-- Tự động gán tên trái đang dùng
+local currentFruit = getEquippedFruit()
+if not currentFruit then
+    warn("Không thể lấy tên trái đang dùng.")
+    return
+end
+
+-- Danh sách chiêu theo từng trái
+local skills = {
+    DoughV2 = {"GrilledLance", "ElasticLasso", "Oblivion", "PowerDough", "BlazingStorm", "ScorchingBuzzcut"},
+    Ope = {"Room", "Takt", "Wreckage", "HurricaneShock", "GammaKnife", "Mes", "Shambles"},
+    LeopardV2 = {"FingerPistolBarrage", "SonicKick", "InfinityDrive", "UnrelentingAssault", "Transform", "HeavensDemise"},
+    Lightning = {"VoltageUp", "LightningPalm", "CrashingThunder", "ProjectedBurst", "CrushingJudgment", "Raigo"},
+    Nika = {"RocGun", "NeoRedHawk", "RocGatling", "RedRoc", "DrumsOfLiberation", "Gear5", "SpinningTop", "DawnRocket", "MolePistolCombo", "RisingBolt", "GigantStamp", "BajrangGun"},
+    DragonV2 = {"InfernoBreath", "ThunderBagua", "DragonTwister", "BeastsBellow", "Transform", "BoloFrenzy", "FlamingTorch", "Demolition", "Transformation"},
+    Soul = {"EnthralGrasp", "ScorchingSickle", "ZeusMeadow", "CrimsonPillar", "Transform", "MaserCannon"},
+    DarkXQuake = {"AntiQuake", "BlackHolePath", "BlackTurret", "NeoKurouzuCombo", "AntiBody", "QuadraSeaQuake"},
+    Okuchi = {"PrimalRage", "ArcticBreath", "DevastatingDrop", "HallowedCuts", "GlacialCoat", "DivineSerpent"},
+}
+
+-- Chiêu cần thông số đặc biệt
+local special = {
+    BlackHolePath = true,
+    Room = true,
+    Shambles = true,
+    GrilledLance = true,
+    ScorchingBuzzcut = true,
+    InfernoBreath = true,
+    ArcticBreath = true,
+}
+
+local function castSkill(fruit, skill)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    if special[skill] then
+        local origin, target = hrp.Position, mouse.Hit.Position
+        local dir = (target - origin).Unit * 45
+        local ray = {
+            Normal = Vector3.yAxis,
+            Direction = dir,
+            Origin = origin,
+            Instance = workspace.Map.Part,
+            Distance = (target - origin).Magnitude,
+            Material = Enum.Material.Grass,
+            Position = target
+        }
+
+        ReplicatedStorage.Replicator:InvokeServer(fruit, skill, {Ground = {Position = target}, MouseRay = ray})
+        ReplicatedStorage.ReplicatorNoYield:FireServer("ClientData", "UpdateData", {RootCF = hrp.CFrame, MouseRay = ray})
+    else
+        ReplicatedStorage.ReplicatorNoYield:FireServer(fruit, skill, {})
+    end
+end
+
+-- Bắt đầu auto
+while _G.auto do
+    for _, skill in ipairs(skills[currentFruit] or {}) do
+        castSkill(currentFruit, skill)
+        task.wait(0.15)
+    end
+end
